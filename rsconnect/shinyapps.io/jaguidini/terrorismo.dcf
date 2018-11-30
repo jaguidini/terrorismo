@@ -5,8 +5,8 @@ account: jaguidini
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 595063
-bundleId: 1730686
+bundleId: 1730731
 url: https://jaguidini.shinyapps.io/terrorismo/
-when: 1543563366.93082
+when: 1543565669.20027
 asMultiple: FALSE
 asStatic: FALSE
