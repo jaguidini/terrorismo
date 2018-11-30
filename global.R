@@ -1,30 +1,57 @@
-#install.packages(c("ggplot2", "ggcorrplot", "ggalt", 
-#                   "ggExtra", "ggthemes", "ggplotify",
-#                   "treemapify", "plyr", "dplyr", "scales",
-#                   "zoo", "shiny", "shinydashboard", "shinythemes"), 
-#                 dependencies = TRUE)
+# install.packages(c('rsconnect',
+#                    'tidyverse',
+#                    'plotly',
+#                    'plyr',
+#                    'scales',
+#                    'arules',
+#                    'arulesViz',
+#                    'car',
+#                    'caret',
+#                    'zoo',
+#                    'ggcorrplot',
+#                    'ggalt',
+#                    'ggmap',
+#                    'ggpubr',
+#                    'ggExtra',
+#                    'ggfortify',
+#                    'ggplotify',
+#                    'rworldmap',
+#                    'treemapify',
+#                    'shiny',
+#                    'shinydashboard'),
+#                  dependencies = TRUE)
 
 ### Carregando pacotes
-library(ggplot2)
+library(plyr)
+library(tidyverse)
+library(plotly)
+library(scales)
+library(arules)
+library(arulesViz)
+library(car)
+library(caret)
+library(zoo)
 library(ggcorrplot)
 library(ggalt)
+library(ggmap)
+library(ggpubr)
 library(ggExtra)
-library(ggthemes)
+library(ggfortify)
 library(ggplotify)
+library(rworldmap)
 library(treemapify)
-library(plyr)
-library(dplyr)
-library(scales)
-library(zoo)
-library(reshape2)
 library(shiny)
 library(shinydashboard)
-library(shinythemes)
+library(leaflet)
+library(ggplot2)
+library(dplyr)
+library(ggmap)
+library(tidyverse)
 
-### Defini��o do tema padrão para utiliza��o dos gr�ficos
+### Definição do tema padrão para utilização dos gráficos
 seta <- grid::arrow(length = grid::unit(0.2, 'cm'), type = 'open')
 
-line_theme <- function (base_size = 14, base_family = 'Ubuntu') {
+default_theme <- function (base_size = 14, base_family = 'Arial') {
   theme_bw(base_size = base_size, base_family = base_family) %+replace%
     theme(axis.ticks = element_blank(),
           axis.line = element_line(arrow = seta, color = 'gray20'),
@@ -38,7 +65,7 @@ line_theme <- function (base_size = 14, base_family = 'Ubuntu') {
           complete = TRUE)
 }
 
-bar_theme <- function (base_size = 14, base_family = 'Ubuntu') {
+no_arrow_theme <- function (base_size = 14, base_family = 'Arial') {
   theme_bw(base_size = base_size, base_family = base_family) %+replace%
     theme(axis.ticks = element_blank(),
           legend.background = element_blank(),
@@ -54,4 +81,61 @@ bar_theme <- function (base_size = 14, base_family = 'Ubuntu') {
 
 
 ### Carregando base de dados...
-dataset <- read.csv(file = 'data/terrorismo_csv.csv', header = TRUE, sep = ";", dec = ",")
+dataset <- read.csv(file = 'data/terrorismo_csv.csv', header = TRUE, sep = ';', dec = ',')
+
+data <- dataset %>% 
+  group_by(ano, regiao) %>% 
+  summarise(atentados = n(),
+            mortes = sum(mortes_confirmadas_vitimas, na.rm = TRUE),
+            media_mortes = round(mortes / atentados, digits = 2)) %>% 
+  filter(atentados >= 20)
+
+data_select <- data[data$media_mortes >= 10,]
+
+# Eventos x Ano
+gg <- ggplot(data, aes(x = ano, y = atentados)) +
+  
+  geom_point(aes(col = regiao, size = mortes)) +
+  
+  geom_smooth(method = 'loess', se = FALSE) +
+  
+  guides(size = guide_legend(title = 'Mortes'),
+         colour = guide_legend(title = 'Região')) +
+  
+  labs(x = 'Ano',
+       y = 'Eventos',
+       title = 'Eventos x Ano') +
+  
+  default_theme()
+
+gg
+
+# Eventos x Média de Mortes
+gg <- ggplot(data, aes(x = mortes, y = atentados)) +
+  
+  geom_point(aes(col = regiao, size = media_mortes)) +
+  
+  geom_smooth(method = 'loess', se = FALSE) +
+  
+  guides(size = guide_legend(title = 'Média de Mortes'),
+         colour = guide_legend(title = 'Região')) +
+  
+  geom_encircle(aes(x = mortes, y = atentados),
+                data = data_select,
+                color = 'red',
+                size = 1,
+                expand = 0.08) +
+  
+  labs(x = 'Mortes',
+       y = 'Eventos',
+       title = 'Eventos x Média de Mortes') +
+  
+  scale_x_continuous(limits = c(0, 20000), 
+                     breaks = seq(0, 20000, 2000)) +
+  
+  default_theme()
+
+gg
+
+# Boxplot da relação entre eventos x mortes
+ggMarginal(gg, type = "boxplot", fill = "transparent")

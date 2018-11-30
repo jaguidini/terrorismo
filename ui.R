@@ -1,41 +1,57 @@
-anos = unique(dataset$ano) %>% as.data.frame()
-ano_min = min(anos)
-ano_max = max(anos)
+# Gera lista de anos 
+anos <- unique(dataset$ano)
+ano_min <- min(anos)
+ano_max <- max(anos)
+
+# Gera lista de países
+paises <- dataset %>% group_by(pais) %>% summarise(atentados = n()) %>% filter(atentados > 50)
+paises <- paises[order(paises$pais), ] %>% select(pais)
 
 dashboardPage(
-  dashboardHeader(title = 'Dashboard'),
+  dashboardHeader(title = 'Global Terrorism'),
   
-dashboardSidebar(
-  sidebarMenu(id = 'sidebarmenu',
-              menuItem('Home', tabName = 'tabHome', icon = icon('home')),
-              menuItem('Introducao', tabName = 'tabIntroducao', icon = icon('comments-o')),
-              menuItem('Base de dados', tabName = 'tabBasedados', icon = icon('database')),
-              menuItem('Graficos', tabName = 'tabGraficos', icon = icon('sitemap'),
-                       menuItem('Atentados',
-                                tabName = 'tabAtentados',
-                                icon = icon('fire'),
-                                menuSubItem('Ao longo dos anos',
-                                            tabName = 'tabAtentadosAnos',
-                                            icon = icon('line-chart'))),
-                       menuItem('Grupos terroristas',
-                                tabName = 'tabGrupos',
-                                icon = icon('fire'),
-                                menuSubItem('Grupos mais atuantes',
-                                            tabName = 'tabTerroristGroups',
-                                            icon = icon('bar-chart')),
-                                menuSubItem('Outros Grupos',
-                                            tabName = 'tabOutrosGrupos',
-                                            icon = icon('line-chart'))),
-                       menuItem('Mapas',
-                                tabName = 'tabMapas',
-                                icon = icon('fire'),
-                                menuSubItem('Mapa1',
-                                            tabName = 'tabMapa1',
-                                            icon = icon('globe')),
-                                menuSubItem('Mapa2',
-                                            tabName = 'tabMapa2',
-                                            icon = icon('globe')))
-              ))),
+  dashboardSidebar(
+    sidebarMenu(
+      # Home
+      menuItem('Home', tabName = 'tabHome', icon = icon('home')),
+      
+      # Introducao
+      menuItem('Introdução', tabName = 'tabIntroducao', icon = icon('comments-o')),
+      
+      # Database
+      menuItem('Base de dados', tabName = 'tabBasedados', icon = icon('database')),
+      
+      # Atentados
+      menuItem(text = 'Eventos',
+               tabName = 'atentados',
+               icon = icon('fire'),
+               
+               # Ao longo dos anos
+               menuSubItem(text= 'Ao longo dos anos',
+                           tabName = 'atentados_anos',
+                           icon = icon('line-chart')),
+               
+               # Tipo de ataque
+               menuSubItem(text = 'Tipo de ataque',
+                           tabName = 'tipo_ataque',
+                           icon = icon('bar-chart'))),
+      
+      # Grupos Terroristas
+      menuItem(text = 'Grupos Terroristas',
+               tabName = 'grupos',
+               icon = icon('fire'),
+               
+               # Mais atuantes
+               menuSubItem(text = 'Mais atuantes',
+                           tabName = 'grupos_mais_atuantes',
+                           icon = icon('bar-chart'))),
+      
+      # Mapa 
+      menuItem(text = 'Mapa',
+               tabName = 'mapa',
+               icon = icon('map-marker'))
+    )
+  ),
   
   dashboardBody(
     tabItems(
@@ -51,12 +67,15 @@ dashboardSidebar(
       tabItem(
         tabName = 'tabIntroducao',
         fluidRow(
-          column(12, includeHTML("html/introducao.html"))
+          box(
+            width = 12,
+            column(12, includeHTML("html/introducao.html")),
+            plotOutput('correlacao', height = 500)
+          )
         )
       ),
       
-      
-      # Limpeza de dados
+      # Base de dados
       tabItem(
         tabName = 'tabBasedados',
         fluidRow(
@@ -64,46 +83,137 @@ dashboardSidebar(
         )
       ),
       
-      # Dashboard tab
+      # Atentados ao longo dos anos
       tabItem(
-        tabName = 'tabAtentadosAnos', 
+        tabName = 'atentados_anos',
+        
         fluidRow(
-          box(
-            title = 'Numero de atentados ao longo dos anos',
-            width = 8,
-            plotOutput('atentados_por_ano')
+          column(
+            width = 4,
+            box(
+              width = 12,
+              h2('Filtros'),
+              sliderInput('interval', 'Intervalo:', ano_min, ano_max, c(dataset), step = 1, dragRange = TRUE),
+              selectInput('countries', 'País', paises, selected = 'United States', multiple = TRUE, selectize = TRUE)
+            )
           ),
           
-          box(
-            title = 'Selecione um periodo',
-            width = 4,
-            sliderInput('periodo_dashboard', 'Intervalo:', ano_min, ano_max, c(dataset), step = 1, dragRange = TRUE)
+          column(
+            width = 8,
+            
+            fluidRow(
+              box(
+                title = 'Eventos',
+                width = 12,
+                plotlyOutput('atentados_por_ano')
+              ),
+              
+              box(
+                title = 'Eventos',
+                width = 12,
+                plotlyOutput('atentados_por_pais')
+              )
+            ),
+            
+            fluidRow(
+              box(
+                title = 'Vítimas',
+                width = 12,
+                plotlyOutput('mortos_feridos_por_ano')
+              ),
+              
+              box(
+                title = 'Efetividade',
+                width = 12,
+                plotlyOutput('atentados_sucesso_falha')
+              )
+            )
           )
         )
       ),
       
-      # Teste tab
+      # Tipo de ataque
       tabItem(
-        tabName = 'tabTerroristGroups',
+        tabName = 'tipo_ataque',
+        
         fluidRow(
-          box(
-            title = 'Grupos mais atuantes',
-            width = 8,
-            plotOutput('grupos_mais_atuantes')
+          column(
+            width = 4,
+            box(
+              width = 12,
+              h2('Filtros'),
+              sliderInput('interval2', 'Intervalo:', ano_min, ano_max, c(dataset), step = 1, dragRange = TRUE),
+              selectInput('countries2', 'País', paises, selected = 'United States', multiple = TRUE, selectize = TRUE)
+            )
           ),
           
-          box(
-            title = 'Selecione um periodo',
+          column(
+            width = 8,
+            fluidRow(
+              box(
+                title = 'Eventos por tipo',
+                width = 12,
+                plotlyOutput('atentados_por_tipo_ataque')
+              )
+            )
+          )
+        )
+      ),
+      
+      # Grupos mais atuantes
+      tabItem(
+        tabName = 'grupos_mais_atuantes',
+        
+        fluidRow(
+          column(
             width = 4,
-            sliderInput('periodo_terrorist', 'Intervalo:', ano_min, ano_max, c(dataset), step = 1, dragRange = TRUE)
+            box(
+              width = 12,
+              h2('Filtros'),
+              sliderInput('interval3', 'Intervalo:', ano_min, ano_max, c(dataset), step = 1, dragRange = TRUE),
+              selectInput('countries3', 'País', paises, selected = 'United States', multiple = TRUE, selectize = TRUE)
+            )
+          ),
+          
+          column(
+            width = 8,
+            fluidRow(
+              box(
+                title = 'Grupos mais atuantes',
+                width = 12,
+                plotlyOutput('grupos_mais_atuantes')
+              ),
+              
+              box(
+                title = 'Atividades por grupo ao longo dos anos',
+                width = 12,
+                plotlyOutput('atividades_grupos_mais_atuantes')
+              )
+            )
+          )
+        )
+      ),
+      
+      tabItem(
+        tabName = 'mapa',
+        column(
+          width = 4,
+          box(
+            width = 12,
+            h2('Filtros'),
+            sliderInput('interval4', 'Intervalo:', ano_min, ano_max, c(dataset), step = 1, dragRange = TRUE),
+            selectInput('countries4', 'País', paises, selected = 'United States', multiple = TRUE, selectize = TRUE)
           )
         ),
         
-        fluidRow(
-          box(
-            title = 'Atividades dos grupos ao longo dos anos',
-            width = 8,
-            plotOutput('atividades_grupos_mais_atuantes')
+        column(
+          width = 8,
+          fluidRow(
+            box(
+              title = 'Mapa',
+              width = 12,
+              leafletOutput("mapa")
+            )
           )
         )
       )
